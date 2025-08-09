@@ -1,18 +1,55 @@
-from src.preprocess import train_test_data
-from sklearn.metrics import accuracy_score
+from evaluate import select_best_model
+from pathlib import Path
+import joblib
+from evaluate import classification_cv
 
-def train_model(model, X, y):
-    X_train, X_test, y_train, y_test = train_test_data(X, y)
-    model.fit(X_train, y_train)
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.linear_model import LogisticRegression
 
-    # Predict the labels for the training data
-    y_pred_train = model.predict(X_train)
-    accuracy_train = accuracy_score(y_train, y_pred_train)
+from sklearn.ensemble import (
+    RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier
+)
+from xgboost import XGBClassifier
 
-    # # Predict the labels for the test data
-    # y_pred = model.predict(X_test)
-    # accuracy_test = accuracy_score(y_test, y_pred)
+from preprocess import preprocess_data
+from dataload import read_data
 
-    return model, accuracy_train
+df = read_data()     
+
+independent_vars, dependent_var = preprocess_data(df)
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+Model_loc = BASE_DIR / "models"
 
 
+models = {
+    'Logistic Regression': LogisticRegression(max_iter=1000),
+    'Decision Tree':DecisionTreeClassifier(random_state=52),
+    'Random Forest':  RandomForestClassifier(random_state=52),
+    'gradient boost': GradientBoostingClassifier(random_state=52),
+    'adaboost':  AdaBoostClassifier(random_state=52),
+    'XGBoost': XGBClassifier(eval_metric='logloss')
+}
+
+
+
+results = {}
+
+for name, model in models.items():
+    print(f"\nEvaluating {name}")
+    df_metrics = classification_cv(model)
+    results[name] = df_metrics
+
+
+
+best_model, scores_df  = select_best_model(results)
+model = models[best_model] # actucal model object 
+
+
+def train_best_model(X=independent_vars, y=dependent_var,  best_model=model):
+    model = best_model.fit(X, y)
+    #model_path = Model_loc/best_model.joblib"
+    joblib.dump(model, Model_loc/best_model.joblib)
+    print(f"Best model {best_model} trained and saved successfully.")
+
+train_best_model()

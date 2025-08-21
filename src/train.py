@@ -49,7 +49,8 @@ model = models[best_model] # actucal model object
 def train_best_model(X=independent_vars, y=dependent_var,  best_model=model):
     model = best_model.fit(X, y)
     #model_path = Model_loc/best_model.joblib"
-    joblib.dump(model, Model_loc/best_model.joblib)
+    joblib.dump(model, Model_loc / f"{best_model.__class__.__name__}.joblib")
+    #joblib.dump(model, Model_loc/best_model.joblib)
     print(f"Best model {best_model} trained and saved successfully.")
 
 train_best_model()

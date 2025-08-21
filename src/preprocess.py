@@ -9,6 +9,7 @@ def preprocess_data(df):
     target = 'Diabetes_binary'
     independent_vars = df.drop(target, axis=1)
     dependent_var = df[target]
+    df.head(5)
     
     return independent_vars, dependent_var
 

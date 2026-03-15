@@ -11,12 +11,16 @@ from sklearn.ensemble import (
 )
 from xgboost import XGBClassifier
 
-from preprocess import preprocess_data
+from preprocess import preprocess_data, train_test_data
 from dataload import read_data
+from sklearn.metrics import accuracy_score
 
 df = read_data()     
 
 independent_vars, dependent_var = preprocess_data(df)
+
+# Split into train/test
+X_train, X_test, y_train, y_test = train_test_data(independent_vars, dependent_var)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 Model_loc = BASE_DIR / "models"
@@ -37,20 +41,24 @@ results = {}
 
 for name, model in models.items():
     print(f"\nEvaluating {name}")
-    df_metrics = classification_cv(model)
+    # Evaluate on the training set using cross-validation
+    df_metrics = classification_cv(model, X=X_train, y=y_train)
     results[name] = df_metrics
 
 
 
 best_model, scores_df  = select_best_model(results)
 model = models[best_model] # actucal model object 
-
-
+ 
+ 
 def train_best_model(X=independent_vars, y=dependent_var,  best_model=model):
-    model = best_model.fit(X, y)
-    #model_path = Model_loc/best_model.joblib"
-    joblib.dump(model, Model_loc / f"{best_model.__class__.__name__}.joblib")
-    #joblib.dump(model, Model_loc/best_model.joblib)
-    print(f"Best model {best_model} trained and saved successfully.")
-
+    # Fit best model on training data
+    trained = best_model.fit(X_train, y_train)
+    # Evaluate on hold-out test set
+    y_pred = trained.predict(X_test)
+    test_acc = accuracy_score(y_test, y_pred)
+    # Save the trained model
+    joblib.dump(trained, Model_loc / f"{best_model.__class__.__name__}.joblib")
+    print(f"Best model {best_model} trained and saved successfully. Test accuracy: {test_acc:.4f}")
+ 
 train_best_model()
